@@ -1,0 +1,82 @@
+{
+	"info": {
+		"_postman_id": "7bebf518-3ce4-4064-bfa5-b0f5ab021506",
+		"name": "map_classiffy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "46281659",
+		"_collection_link": "https://yousef-8658148.postman.co/workspace/yousef's-Workspace~d4840907-88e4-40cc-854a-e5877ff5da87/collection/46281659-7bebf518-3ce4-4064-bfa5-b0f5ab021506?action=share&source=collection_link&creator=46281659"
+	},
+	"item": [
+		{
+			"name": "http://127.0.0.1:8000/classify",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"layername\":\"map_classify\",\r\n\"workspace\":\"cite\",\r\n\"column\":\"SID79\",\r\n\"method\":\"PrettyBreaks\",\r\n\"bins\":[50,70,80,100],\r\n\"K_classes\":4 ,\r\n\"color\":[\r\n    \r\n    \"#ffbaba1\",\r\n    \"#ffbaba2\",\r\n    \"#ffbaba3\",\r\n    \"#ffbaba4\"\r\n    //  \"#ffbaba\"\r\n    //  \"#ffbaba\",\r\n    //  \"#ffbaba\"\r\n]}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/classify",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"classify"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://127.0.0.1:8000/get_columns",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"layername\":\"map_classify\",\r\n\"workspace\":\"cite\",\r\n\"column\":\"SID79\",\r\n\"method\":\"HeadTailBreaks\",\r\n// // \"bins\":[50,70,80,100],\r\n// // \"K_classes\":3 ,\r\n\"color\":[\r\n    \r\n    \"#ffbaba\",\r\n    \"#ffbaba\",\r\n    \"#ffbaba\",\r\n    \"#ffbaba\",\r\n     \"#ffbaba\",\r\n     \"#ffbaba\",\r\n     \"#ffbaba\"]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/get_columns",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"get_columns"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
