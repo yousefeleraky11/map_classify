@@ -12,14 +12,16 @@ app=FastAPI()
 class Inputs(BaseModel):
     layername:str
     workspace:str
-    column:Optional[str]=None
+    column:str
     K_classes:Optional[int]=None
-    method:Optional[str]=None
-    color:Optional[List]=None
+    method:str
+    color:List
     bins:Optional[List]=None
-
+class Get_column(BaseModel):
+    layername:str
+    workspace:str
 @app.get('/get_columns')
-def get_columns(inputs:Inputs):
+def get_columns(inputs:Get_column):
       """
     Fetches the column names of a vector layer from GeoServer.
 
