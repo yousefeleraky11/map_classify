@@ -17,11 +17,9 @@ class Inputs(BaseModel):
     method:str
     color:List
     bins:Optional[List]=None
-class Get_column(BaseModel):
-    layername:str
-    workspace:str
+
 @app.get('/get_columns')
-def get_columns(inputs:Get_column):
+def get_columns(workspace:str,layername:str):
       """
     Fetches the column names of a vector layer from GeoServer.
 
@@ -29,13 +27,14 @@ def get_columns(inputs:Get_column):
     a list of its column names, which can be used to inform the classification.
 
     Args:
-        inputs (Inputs): The input model containing layername and workspace.
+        workspace(str):workspace name on geoserver
+        layername(str):the layer name on geoserver
 
     Returns:
         List[str]: A list of column names for the specified layer.
     """
       geoserver=Geoserver()
-      url=geoserver.get_vector_layer(workspace=inputs.workspace,layername=inputs.layername)
+      url=geoserver.get_vector_layer(workspace=workspace,layername=layername)
       gdf=gpd.read_file(url)
       columns=gdf.columns.to_list()
       return columns

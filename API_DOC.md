@@ -15,7 +15,7 @@
 
 ### 1 get_columns
 
-**Method** `POST`
+**Method** `GET`
 **URL** `/get_columns`
 
 #### Request Body Parameters
