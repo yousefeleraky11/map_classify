@@ -5,9 +5,9 @@ import zipfile
 from typing import Optional
 
 
-load_dotenv(dotenv_path='.env.txt')   
-class Geoserver:
-   
+load_dotenv()
+
+class Geoserver:     
     def __init__(self):
         """ _summary_
         its a class for geoserver rest proccess
