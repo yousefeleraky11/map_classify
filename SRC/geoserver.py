@@ -1,77 +1,92 @@
-import requests
-from dotenv import load_dotenv
+"""
+Module for geoserver rest setup and handling files.
+"""
 import os
 import zipfile
 from typing import Optional
+from dotenv import load_dotenv
+import requests
 
 
 load_dotenv()
 
-class Geoserver:     
+class Geoserver:
+    """A class for handling GeoServer REST API processes.
+
+    This class provides methods for interacting with GeoServer, including
+    retrieving layer information and uploading raster and vector data.
+    """
     def __init__(self):
-        """ _summary_
-        its a class for geoserver rest proccess
+        """Initializes the Geoserver client.
+
+        The constructor loads credentials and the GeoServer URL from environment
+        variables for authentication and connectivity.
         """
-        
         self.username = os.getenv('GEOSERVER_NAME')
         self.password = os.getenv('GEOSERVER_PASSWORD')
         self.geoserver_url = os.getenv('GEOSERVER_URL')
-       
+    def get_vector_layer(self, workspace, layername):
+        """Retrieves the WFS URL for a vector layer.
 
-    def get_vector_layer(self,workspace,layername):
-        url=f"{self.geoserver_url}/{workspace}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName={workspace}:{layername}&outputFormat=application/json"
-        return url
-    def get_layer(self, workspace, layername):
-        """_summary_
-
-        Args:
-            workspace (_str): workspace name on geoserver that contain the layer
-            layername (_str): the name of the targeted layer
-
-        Returns:
-            _type_: wcs url that work on gdal
+        :param workspace: The name of the GeoServer workspace containing the layer.
+        :type workspace: str
+        :param layername: The name of the vector layer.
+        :type layername: str
+        :returns: The WFS URL for the specified layer, formatted as JSON.
+        :rtype: str
         """
-        url = ( f"WCS:{self.geoserver_url}/wcs?service=WCS&version=1.0.0&request=GetCoverage&coverage={workspace}:{layername}&format=GeoTIFF"
+        url = (f"{self.geoserver_url}/{workspace}/ows?service=WFS&version=1.0.0&request=GetFeature"
+               f"&typeName={workspace}:{layername}&outputFormat=application/json")
+        return url
+
+    def get_layer(self, workspace, layername):
+        """Retrieves the WCS URL for a raster layer.
+
+        :param workspace: The name of the GeoServer workspace containing the layer.
+        :type workspace: str
+        :param layername: The name of the raster layer.
+        :type layername: str
+        :returns: The WCS URL for the layer, which can be used by GDAL.
+        :rtype: str
+        """
+        url = (
+            f"WCS:{self.geoserver_url}/wcs?service=WCS&version=1.0.0&request"
+            f"=GetCoverage&coverage={workspace}:{layername}&format=GeoTIFF"
         )
         return url
+
     def create_coveragestore(
         self,
-        path,
+        path: str,
         workspace: Optional[str] = None,
         layer_name: Optional[str] = None,
         file_type: str = "GeoTIFF",
         content_type: str = "image/tiff",
         method: str = "file",
-    ):
-        """
-        Creates the coverage store; Data will be uploaded to the server.
+    ) -> tuple[int, str]:
+        """Creates the coverage store and uploads data to the GeoServer.
 
-        Parameters
-        ----------
-        path : str
-            The path to the file.
-        workspace : str, optional
-            The name of the workspace.
-        layer_name : str, optional
-            The name of the coverage store. If not provided, parsed from the file name.
-        file_type : str
-            The type of the file.
-        content_type : str
-            The content type of the file.
-        method : str
-            file | url | external | remote
-
-        Returns
-        -------
-        dict
-            The response from the server.
-
-        Notes
-        -----
-        the path to the file and file_type indicating it is a geotiff, arcgrid or other raster type
+        :param path: The path to the file to be uploaded.
+        :type path: str
+        :param workspace: The name of the workspace. Defaults to "default".
+        :type workspace: Optional[str]
+        :param layer_name: The name for the new coverage store. If not
+            provided, the name is parsed from the filename.
+        :type layer_name: Optional[str]
+        :param file_type: The type of the file. Defaults to "GeoTIFF".
+        :type file_type: str
+        :param content_type: The content type of the file. Defaults to "image/tiff".
+        :type content_type: str
+        :param method: The upload method. Can be 'file', 'url', 'external', or
+            'remote'. Defaults to "file".
+        :type method: str
+        :raises ValueError: If the file path is not provided, or if the GeoServer
+            request fails.
+        :returns: A tuple containing the HTTP status code and the layer name.
+        :rtype: tuple[int, str]
         """
         if path is None:
-            raise Exception("You must provide the full path to the raster")
+            raise ValueError("You must provide the full path to the raster")
 
         if workspace is None:
             workspace = "default"
@@ -83,75 +98,47 @@ class Geoserver:
                 layer_name = f[0]
 
         file_type = file_type.lower()
-        
-        
-        url = "{0}/rest/workspaces/{1}/coveragestores/{2}/{3}.{4}?coverageName={2}".format(
-            self.geoserver_url, workspace, layer_name, method, file_type
-            )
-
+        url=(f"{self.geoserver_url}/rest/workspaces/{workspace}/"
+             f"coveragestores/{layer_name}/{method}.{file_type}?coverageName={layer_name}")
         if method == "file":
             headers = {"content-type": content_type, "Accept": "application/json"}
             with open(path, "rb") as f:
-              r=requests.put(url=url,headers=headers,data=f,auth=(self.username,self.password) )
+                r = requests.put(url=url,
+                                 headers=headers, data=f,
+                                 auth=(self.username, self.password),
+                                 timeout=30)
         else:
             headers = {"content-type": "text/plain", "Accept": "application/json"}
-            r=requests.put(url=url,headers=headers,data=path,auth=(self.username,self.password) )
+            r = requests.put(url=url,
+                             headers=headers,
+                             data=path,
+                             auth=(self.username, self.password),timeout=30)
 
         if r.status_code == 201:
-            return r.status_code,layer_name
+            return r.status_code, layer_name
         else:
             raise ValueError(r.status_code, r.content)
-        
-    # def create_coveragestore(self,workspace,coveragestore):
-    #   """_summary_  
-    #   Args:
-    #       workspace (_str): workspace name on geoserver that contain the layer
-    #       datastore (str): datastore name that will be created  
-    #   Raises:
-    #       TimeoutError: error creating data store:(error reason)
-    #   """
-    #   try:
-    #     se=requests.post(
-    #         f"{self.geoserver_url}/rest/workspaces/{workspace}/coveragestores",
-    #         json={"coverageStore": {
-    #             "name": coveragestore,
-    #             "type": "GeoTIFF",
-    #             "enabled": "True",
-    #             "workspace": { "name": workspace }
-    #             }},
-    #         headers={"Content-type": "application/json"}, 
-    #         auth=(self.username,self.password) 
-    #     )
-    #     return se
-    #   except Exception as e:
-    #     raise TimeoutError(f'error creating data store:{e}')   
+    def upload_raster_data(self, workspace, coveragestore, layername, file_path):
+        """Uploads a raster file (GeoTIFF) to GeoServer using the REST API.
     
-            
-
-    
-    
-    def upload_raster_data(self, workspace, coveragestore, layername, file_path):    
+        :param workspace: The name of the workspace on GeoServer.
+        :type workspace: str
+        :param coveragestore: The name of the coverage store to create.
+        :type coveragestore: str
+        :param layername: The name of the raster layer to publish.
+        :type layername: str
+        :param file_path: The local file path of the GeoTIFF to upload.
+        :type file_path: str
+        :raises TimeoutError: If there is an error during the upload process.
+        :returns: The HTTP status code of the successful upload.
+        :rtype: int
         """
-        Uploads a raster file (GeoTIFF) to GeoServer using the REST API.
-    
-        Args:
-            workspace (str): The name of the workspace on GeoServer.
-            coveragestore (str): The name of the coverage store to create.
-            layername (str): The name of the raster layer to publish.
-            file_path (str): The local file path of the GeoTIFF to upload.
-    
-        Raises:
-            TimeoutError: If there's an error during the upload process.
-        """
-        # Use the /external.geotiff endpoint for file uploads
-        url = f"{self.geoserver_url}/rest/workspaces/{workspace}/coveragestores/{coveragestore}/file.geotiff"
-        
-        # Define parameters for configuring and naming the layer
+        url = (f"{self.geoserver_url}/rest/workspaces/{workspace}"
+               f"/coveragestores/{coveragestore}/file.geotiff")
         params = {
             "configure": "all",
             "coverageName": layername
         }
-    
         try:
             with open(file_path, "rb") as f:
                 r = requests.put(
@@ -159,86 +146,68 @@ class Geoserver:
                     data=f,
                     headers={"Content-type": "image/tiff"},
                     auth=(self.username, self.password),
-                    params=params
+                    params=params,timeout=30
                 )
-                r.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
+                r.raise_for_status()
                 return r.status_code
-                
         except requests.exceptions.RequestException as e:
-            raise TimeoutError(f'Error uploading the data: {e}')
-    def set_crs(self, workspace, coveragestore, layername, epsg_code=None):
-      if epsg_code is None:
-          epsg_code = self.get_layer_crs(workspace, coveragestore, layername)
-  
-      url = f"{self.geoserver_url}/rest/workspaces/{workspace}/coveragestores/{coveragestore}/coverages/{layername}.xml"
-      data = f"<coverage><srs>{epsg_code}</srs></coverage>"
-      
-      r = requests.put(
-          url,
-          data=data,
-          headers={"Content-type": "text/xml"},
-          auth=(self.username, self.password)
-      )
-      return r.status_code
+            raise ValueError(f'Error uploading the data: {e}') from e
+    def create_zipfilepath(self, tmpdir) :
+        """Creates the file path for a temporary zip file.
 
-    def create_zipfilepath(self,tmpdir):
-        """_summary_
-
-        Args:
-            tmpdir (str): the path of the temp folder
-
-        Returns:
-            zipfilepath: the path that contain files needed to be zipping 
+        :param tmpdir: The path of the temporary folder.
+        :type tmpdir: str
+        :returns: The path of the zip file to be created.
+        :rtype: str
         """
-        zip_file_path = os.path.join(tmpdir, "output.zip")      
+        zip_file_path = os.path.join(tmpdir, "output.zip")
         return zip_file_path
-    
-    
-    def zip_files(self,zip_file_path,tempdir):
-      """this  method for zipping shapefiles  
-      Args:
-          zip_file_path (str): the path of dirctory that you want to zip
-          tempdir (str): the path of temp dirctory  
-      Raises:
-          ValueError: cannot zip the files:(the reason of error)
-      """
-      try:
-        with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+    def zip_files(self, zip_file_path, tempdir):
+        """Zips shapefiles from a temporary directory into a single zip file.
+      
+        The process includes standard shapefile components: .shp, .shx, .dbf, .prj, and .cpg.
+
+        :param zip_file_path: The full path for the output zip file.
+        :type zip_file_path: str
+        :param tempdir: The path of the temporary directory containing the shapefiles.
+        :type tempdir: str
+        :raises ValueError: If an error occurs during the zipping process.
+        """
+        try:
+            with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zf:
                 for root, _, files in os.walk(tempdir):
                     for file in files:
                         if file.split('.')[-1] in ['shp', 'shx', 'dbf', 'prj', 'cpg']:
                             file_path = os.path.join(root, file)
-                            zf.write(file_path, os.path.basename(file_path))  
-      except Exception as e:
-          raise ValueError(f' cannot zip the files:{e}')                    
-                              
+                            zf.write(file_path, os.path.basename(file_path))
+        except Exception as e:
+            raise TimeoutError(f'cannot zip the files: {e}') from e
     def upload_shapefile(self, workspace, datastore, zip_path):
+        """Uploads a zipped shapefile to GeoServer.
        
-      """
-      this  method for uploading zip shapefile to geoserver  
-      Args:
-          zip_path (str): the path of zipfile that you want to upload
-          workspace (_str): workspace name on geoserver that contain the layer  
-          datastore (str): the data store that will contain the shapefile 
-      Raises:
-          ValueError: cannot upload the file: (the reason of error)
-      
-      """  
-      try:
-            
-       url = f"{self.geoserver_url}/rest/workspaces/{workspace}/datastores/{datastore}/file.shp"
-       with open(zip_path, "rb") as f:
-           headers = {"Content-type": "application/zip"}
-           response = requests.put(
-               url,
-               data=f,
-               auth=(self.username,self.password) ,
-               headers=headers,
-               params={"update":"overwrite"}
-           )
-       return response
-      except Exception as e:
-          raise ValueError(f'cannot upload the file:{e}')
-
-     
-                
+        :param workspace: The name of the GeoServer workspace.
+        :type workspace: str
+        :param datastore: The name of the datastore that will contain the shapefile.
+        :type datastore: str
+        :param zip_path: The path of the zip file to upload.
+        :type zip_path: str
+        :raises ValueError: If an error occurs during the upload process.
+        :returns: The HTTP response from the GeoServer REST API.
+        :rtype: requests.Response
+        """
+        try:
+            url = (f"{self.geoserver_url}/rest/workspaces/"
+                   f"{workspace}/datastores/{datastore}/file.shp")
+            with open(zip_path, "rb") as f:
+                headers = {"Content-type": "application/zip"}
+                response = requests.put(
+                    url,
+                    data=f,
+                    auth=(self.username, self.password),
+                    headers=headers,
+                    params={"update": "overwrite"},
+                    timeout=15.0
+                )
+            return response
+        except Exception as e:
+            raise ValueError(f'cannot upload the shapefile: {e}') from e

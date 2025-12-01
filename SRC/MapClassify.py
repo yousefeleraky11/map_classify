@@ -1,10 +1,13 @@
+"""
+Module for  handling geospatial classification .
+"""
+import re
 import mapclassify
 import geopandas as gpd
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
-import re
 
-class MapClassify:
+class Mapclassify:
     """
     A utility class for classifying geospatial data using various mapclassify methods.
 
@@ -13,7 +16,7 @@ class MapClassify:
     classification results, including class ranges and assigned colors.
     """
 
-    def __init__(self, file, method, column, colors, K_classes=None, bins=None):
+    def __init__(self, file, method, column, colors, k_classes=None, bins=None):
         """
         Initializes the MapClassify object.
 
@@ -32,7 +35,7 @@ class MapClassify:
             ValueError: If an unknown classification method is provided.
         """
         self.file = file
-        self.K_classes = K_classes
+        self.k_classes = k_classes
         self.method = method
         self.column = column
         self.gdf = None
@@ -78,10 +81,10 @@ class MapClassify:
             if self.method in param_map:
                 params.update(param_map[self.method])
             else:
-                params['k'] = self.K_classes
+                params['k'] = self.k_classes
             return classifier_class(**params)
         except Exception as e:
-            raise ValueError(f'error classifying data: {e}')
+            raise ValueError(f'error classifying data: {e}')from e
 
     def prepare_data(self):
         """
@@ -104,17 +107,14 @@ class MapClassify:
             ranges = []
             for x in classify.get_legend_classes():
                 low, high = map(float, re.findall(r"[-+]?\d*\.\d+|\d+", x))
-                ranges.append([low, high])
-            
+                ranges.append([low, high])        
             df_classes = pd.DataFrame({
                 "class": range(len(classify.counts)),
                 "count": classify.counts,
                 "range": ranges,
                 "color": [self.colors[x] for x in range(len(ranges))]
             })
-            
             filterd_gdf = filterd_gdf.merge(df_classes, left_index=True, right_on="class")
             return filterd_gdf
         except Exception as e:
-            raise ValueError(f'cannot prepare data: {e}')
-
+            raise ValueError(f'cannot prepare data: {e}')from e
